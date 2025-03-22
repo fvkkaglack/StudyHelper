@@ -1,17 +1,37 @@
 package com.studyhelper.entity;
+
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class Order {
+    private UUID id;  // Добавляем поле id типа UUID
     private String Name;
     private String Description;
     private LocalDateTime Deadline;
     private Double reward;
 
-    public Order(String name, String Description, LocalDateTime deadline, double Reward) {
+    // Обновляем конструктор, чтобы принимать id как параметр
+    public Order(UUID id, String name, String description, LocalDateTime deadline, double reward) {
+        this.id = id;
         this.Name = name;
-        this.Description = Description;
+        this.Description = description;
         this.Deadline = deadline;
-        this.reward = Reward;
+        this.reward = reward;
+    }
+
+    public Order(){
+
+
+    }
+
+    // Геттер для id
+    public UUID getId() {
+        return id;
+    }
+
+    // Сеттер для id
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -49,7 +69,8 @@ public class Order {
     @Override
     public String toString() {
         return "Order{" +
-                "orderName='" + Name + '\'' +
+                "id=" + id +  // Добавляем id в строку
+                ", orderName='" + Name + '\'' +
                 ", orderDescription='" + Description + '\'' +
                 ", deadline=" + Deadline +
                 ", reward=" + reward +
