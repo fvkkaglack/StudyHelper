@@ -1,12 +1,36 @@
 package com.studyhelper.entity;
 
-public class User {
-    private final String name;
-    private final int age;
+import java.util.UUID;
 
-    public User(String name, int age){
+public class User {
+    private UUID id;
+    private String name;
+    private Integer age;
+
+    public User(){
+
+    }
+
+    public User(String name, Integer age){
         this.name = name;
         this.age = age;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    // Геттер для поля id
+    public UUID getId() {
+        return id;
     }
 
     public int getAge() {
