@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: study-helper
+    version: 1.0.0
+  datasource:
+    username: myuser
+    password: mypassword
+    url: jdbc:postgresql://localhost:5432/mydatabase
+  flyway:
+    # baseline-on-migrate: true
+    default-schema: public
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
