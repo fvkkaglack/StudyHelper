@@ -11,3 +11,6 @@ spring:
     default-schema: public
     user: ${spring.datasource.username}
     password: ${spring.datasource.password}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
