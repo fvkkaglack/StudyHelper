@@ -1,21 +1,17 @@
 package com.studyhelper.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
-@Schema(description = "Пользователь")
+@Schema(description = "Запрос на создание пользователя")
 public record UserRequest(
-        @Size(max = 100)
         @NotBlank
-        @Schema(description = "Имя пользователя", requiredMode = REQUIRED)
-        String name,
-
-        @NotNull
-        @Positive
-        @Max(100)
-        @Schema(description = "Возраст пользователя", requiredMode = REQUIRED)
-        Integer age
+        @Schema(description = "Никнейм пользователя", requiredMode = REQUIRED)
+        String nickname
 ) {
 }

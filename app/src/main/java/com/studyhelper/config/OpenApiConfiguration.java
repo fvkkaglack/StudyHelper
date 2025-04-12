@@ -20,7 +20,8 @@ public class OpenApiConfiguration {
     private Info getInfo(String version) {
         var info = new Info();
         info.setTitle("StudyHelper");
-        info.setDescription("Приложение для взаимопомощи студентам ПГУ");
+        info.setDescription("Приложение для взаимопомощи студентам Полоцкого государственного университета (ПГУ). " +
+                "Студенты обмениваются заданиями за звёзды, с выбором исполнителя из заявок.");
         info.setVersion(version);
         return info;
     }
