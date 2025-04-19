@@ -1,16 +1,17 @@
-CREATE TABLE IF NOT EXISTS users
-(
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
-    nickname character varying COLLATE pg_catalog."default" NOT NULL,
-    balance integer NOT NULL DEFAULT 0,
-    total_stars integer NOT NULL DEFAULT 0,
-    debt integer NOT NULL DEFAULT 0,
-    tasks_created integer NOT NULL DEFAULT 0,
-    tasks_taken integer NOT NULL DEFAULT 0,
-    overdue_fake_tasks integer NOT NULL DEFAULT 0,
-    unjust_rejections integer NOT NULL DEFAULT 0,
-    is_task_creation_blocked boolean NOT NULL DEFAULT false,
-    is_task_taking_blocked boolean NOT NULL DEFAULT false,
-    block_until timestamp without time zone,
-    CONSTRAINT users_pkey PRIMARY KEY (id)
+
+    CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nickname VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    balance INTEGER NOT NULL DEFAULT 50,
+    total_stars INTEGER NOT NULL DEFAULT 0,
+    debt INTEGER NOT NULL DEFAULT 0,
+    tasks_created INTEGER NOT NULL DEFAULT 0,
+    tasks_taken INTEGER NOT NULL DEFAULT 0,
+    overdue_fake_tasks INTEGER NOT NULL DEFAULT 0,
+    unjust_rejections INTEGER NOT NULL DEFAULT 0,
+    is_task_creation_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    is_task_taking_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    block_until TIMESTAMP
 );

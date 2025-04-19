@@ -1,18 +1,35 @@
 package com.studyhelper.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-public class User {
+@Getter
+@Setter
+public class User implements UserDetails {
     @Id
     @Column(name = "id")
     private UUID id;
 
-    @Column(name = "nickname")
+    @Column(name = "nickname", unique = true)
     private String nickname;
+
+    @Column(name = "password")
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    private Role role;
 
     @Column(name = "balance")
     private int balance;
@@ -36,110 +53,49 @@ public class User {
     private int unjustRejections;
 
     @Column(name = "is_task_creation_blocked")
-    private boolean isTaskCreationBlocked;
+    private boolean taskCreationBlocked;
 
     @Column(name = "is_task_taking_blocked")
-    private boolean isTaskTakingBlocked;
+    private boolean taskTakingBlocked;
 
     @Column(name = "block_until")
     private LocalDateTime blockUntil;
 
-    public User() {
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
-    public UUID getId() {
-        return id;
+    @Override
+    public String getPassword() {
+        return password;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getNickname() {
+    @Override
+    public String getUsername() {
         return nickname;
     }
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
     }
 
-    public int getBalance() {
-        return balance;
+    @Override
+    public boolean isAccountNonLocked() {
+        if (blockUntil != null && blockUntil.isAfter(LocalDateTime.now())) {
+            return false;
+        }
+        return !taskCreationBlocked && !taskTakingBlocked;
     }
 
-    public void setBalance(int balance) {
-        this.balance = balance;
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
     }
 
-    public int getTotalStars() {
-        return totalStars;
-    }
-
-    public void setTotalStars(int totalStars) {
-        this.totalStars = totalStars;
-    }
-
-    public int getDebt() {
-        return debt;
-    }
-
-    public void setDebt(int debt) {
-        this.debt = debt;
-    }
-
-    public int getTasksCreated() {
-        return tasksCreated;
-    }
-
-    public void setTasksCreated(int tasksCreated) {
-        this.tasksCreated = tasksCreated;
-    }
-
-    public int getTasksTaken() {
-        return tasksTaken;
-    }
-
-    public void setTasksTaken(int tasksTaken) {
-        this.tasksTaken = tasksTaken;
-    }
-
-    public int getOverdueFakeTasks() {
-        return overdueFakeTasks;
-    }
-
-    public void setOverdueFakeTasks(int overdueFakeTasks) {
-        this.overdueFakeTasks = overdueFakeTasks;
-    }
-
-    public int getUnjustRejections() {
-        return unjustRejections;
-    }
-
-    public void setUnjustRejections(int unjustRejections) {
-        this.unjustRejections = unjustRejections;
-    }
-
-    public boolean getTaskCreationBlocked() {
-        return isTaskCreationBlocked;
-    }
-
-    public void setTaskCreationBlocked(boolean taskCreationBlocked) {
-        isTaskCreationBlocked = taskCreationBlocked;
-    }
-
-    public boolean getTaskTakingBlocked() {
-        return isTaskTakingBlocked;
-    }
-
-    public void setTaskTakingBlocked(boolean taskTakingBlocked) {
-        isTaskTakingBlocked = taskTakingBlocked;
-    }
-
-    public LocalDateTime getBlockUntil() {
-        return blockUntil;
-    }
-
-    public void setBlockUntil(LocalDateTime blockUntil) {
-        this.blockUntil = blockUntil;
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }
