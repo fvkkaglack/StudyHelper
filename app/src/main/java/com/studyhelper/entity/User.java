@@ -18,6 +18,7 @@ import java.util.UUID;
 @Setter
 public class User implements UserDetails {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO) // Указываем, что id генерируется
     @Column(name = "id")
     private UUID id;
 

@@ -45,27 +45,29 @@ public class UserService implements UserDetailsService {
         return userMapper;
     }
 
-    // Регистрация обычного пользователя (USER)
-    public Map<String, String> register(String nickname, String password) {
-        if (userRepository.existsByNickname(nickname)) {
-            throw new IllegalArgumentException("Пользователь с никнеймом " + nickname + " уже существует");
-        }
-        User user = new User();
-        user.setNickname(nickname);
-        user.setPassword(passwordService.encodePassword(password));
-        user.setRole(Role.USER); // Только USER при регистрации
-        user.setBalance(0);
-        user.setTotalStars(0);
-        user.setDebt(0);
-        user.setTasksCreated(0);
-        user.setTasksTaken(0);
-        user.setOverdueFakeTasks(0);
-        user.setUnjustRejections(0);
-        user.setTaskCreationBlocked(false);
-        user.setTaskTakingBlocked(false);
-        User savedUser = userRepository.save(user);
-        return generateTokens(savedUser);
+// Регистрация обычного пользователя (USER)
+public Map<String, String> register(String nickname, String password) {
+    if (userRepository.existsByNickname(nickname)) {
+        throw new IllegalArgumentException("Пользователь с никнеймом " + nickname + " уже существует");
     }
+    User user = new User();
+    user.setNickname(nickname);
+    user.setPassword(passwordService.encodePassword(password));
+    user.setRole(Role.USER);
+    user.setTotalStars(0);
+    user.setBalance(50);
+    user.setDebt(0);
+    user.setTasksCreated(0);
+    user.setTasksTaken(0);
+    user.setOverdueFakeTasks(0);
+    user.setUnjustRejections(0);
+    user.setTaskCreationBlocked(false);
+    user.setTaskTakingBlocked(false);
+    System.out.println("Saving user: " + user.getNickname());
+    User savedUser = userRepository.save(user);
+    System.out.println("User saved with ID: " + savedUser.getId());
+    return generateTokens(savedUser);
+}
 
     // Назначение роли модератора существующему пользователю (только для ADMIN)
     @PreAuthorize("hasRole('ADMIN')")
@@ -87,28 +89,6 @@ public class UserService implements UserDetailsService {
         return userMapper.toResponse(updatedUser);
     }
 
-    // Создание пользователя (для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    public UserResponse createUser(UserRequest request, Role role) {
-        if (userRepository.existsByNickname(request.nickname())) {
-            throw new IllegalArgumentException("Пользователь с никнеймом " + request.nickname() + " уже существует");
-        }
-        User user = userMapper.toUser(request);
-        user.setRole(role); // Роль устанавливается из параметра (контроллер проверяет права)
-        user.setBalance(0);
-        user.setTotalStars(0);
-        user.setDebt(0);
-        user.setTasksCreated(0);
-        user.setTasksTaken(0);
-        user.setOverdueFakeTasks(0);
-        user.setUnjustRejections(0);
-        user.setTaskCreationBlocked(false);
-        user.setTaskTakingBlocked(false);
-        user.setPassword(passwordService.encodePassword(user.getPassword())); // Шифруем пароль
-        User savedUser = userRepository.save(user);
-        return userMapper.toResponse(savedUser);
-    }
-
     // Обновление пользователя по ID (для MODERATOR и ADMIN)
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public UserResponse updateUser(UUID id, UserRequest request, Role role) {
@@ -125,13 +105,13 @@ public class UserService implements UserDetailsService {
         return userMapper.toResponse(updatedUser);
     }
 
-    // Удаление пользователя по ID (для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    public void deleteUser(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден"));
-        userRepository.delete(user);
-    }
+// Удаление пользователя по ID (для MODERATOR и ADMIN)
+@PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+public void deleteUser(UUID id) {
+    User user = userRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден"));
+    userRepository.delete(user);
+}
 
     // Получение пагинированного списка пользователей (для MODERATOR и ADMIN)
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -158,7 +138,6 @@ public class UserService implements UserDetailsService {
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
     }
-
     // Обновление пользователя по никнейму (для текущего пользователя или ADMIN)
     public User updateUser(String nickname, User updatedUser, UserDetails currentUser) {
         if (!currentUser.getUsername().equals(nickname) && !currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
@@ -194,8 +173,7 @@ public class UserService implements UserDetailsService {
         userRepository.delete(user);
     }
 
-    // Получение списка всех пользователей (доступно для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    // Получение списка всех пользователей
     public List<User> getAllUsers() {
         return (List<User>) userRepository.findAll();
     }

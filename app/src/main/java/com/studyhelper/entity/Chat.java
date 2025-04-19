@@ -27,4 +27,5 @@ public class Chat {
 
     @Column(name = "messages")
     private String messages;
+
 }

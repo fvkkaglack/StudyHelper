@@ -13,6 +13,7 @@ import java.util.UUID;
 @Setter
 public class RefreshToken {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO) // Добавляем автоматическую генерацию
     @Column(name = "id")
     private UUID id;
 

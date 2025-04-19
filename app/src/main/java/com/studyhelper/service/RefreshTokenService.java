@@ -5,6 +5,7 @@ import com.studyhelper.entity.User;
 import com.studyhelper.repository.RefreshTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -77,6 +78,7 @@ public class RefreshTokenService {
      *
      * @param user пользователь
      */
+    @Transactional
     public void deleteByUser(User user) {
         refreshTokenRepository.deleteByUser(user); // Используем deleteByUser вместо deleteByUserId
     }

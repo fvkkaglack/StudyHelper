@@ -37,27 +37,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Создание пользователя (для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    @PostMapping
-    @Operation(summary = "Создать пользователя", description = "Создаёт нового пользователя на основе переданных данных (только для модераторов и админов)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Пользователь успешно создан"),
-            @ApiResponse(responseCode = "400", description = "Неверные данные запроса"),
-            @ApiResponse(responseCode = "403", description = "Доступ запрещён")
-    })
-    public ResponseEntity<UserResponse> createUser(
-            @RequestBody @Valid @Parameter(description = "Данные для создания пользователя") UserRequest request,
-            @RequestParam(value = "role", defaultValue = "USER") @Parameter(description = "Роль пользователя (по умолчанию USER)") Role role,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        // Только админ может задавать роль отличную от USER
-        if (role != Role.USER && !currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new SecurityException("Только администратор может задавать роль отличную от USER");
-        }
-        UserResponse userResponse = userService.createUser(request, role);
-        return ResponseEntity.ok(userResponse);
-    }
-
     // Назначение роли модератора (только для ADMIN)
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/assign-moderator/{nickname}")

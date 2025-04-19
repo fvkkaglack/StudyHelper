@@ -27,3 +27,7 @@ jwt:
   secret: OxVGZqyxElx+JZj2Yxx5+SRRCIXfKI3vXeMH/xXggu4= # Замени на безопасный ключ
   access-token-expiration: 86400000 # 24 часа в миллисекундах
   refresh-token-expiration: 604800000 # 7 дней в миллисекундах
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.studyhelper: DEBUG
