@@ -135,12 +135,4 @@ public class AuthController {
         return ResponseEntity.ok(new TokenResponse(newAccessToken, newRefreshToken));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
-        }
-        return ResponseEntity.badRequest().body(errors);
-    }
 }
