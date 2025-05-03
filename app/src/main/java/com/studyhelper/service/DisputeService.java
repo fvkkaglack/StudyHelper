@@ -6,12 +6,14 @@ import com.studyhelper.entity.Dispute;
 import com.studyhelper.mapper.DisputeMapper;
 import com.studyhelper.repository.DisputeRepository;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class DisputeService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DisputeService.class);
@@ -31,6 +33,7 @@ public class DisputeService {
     }
 
     public DisputeResponse resolveDispute(UUID id, String resolution) {
+        log.atInfo().log("uyiuy");
         Dispute dispute = disputeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Dispute not found"));
         dispute.setStatus(Dispute.DisputeStatus.RESOLVED);

@@ -17,9 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Сервис для работы с JWT-токенами.
- */
 @Service
 public class JwtService {
 
@@ -38,34 +35,14 @@ public class JwtService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    /**
-     * Извлекает имя пользователя из токена.
-     *
-     * @param token JWT-токен
-     * @return имя пользователя
-     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    /**
-     * Извлекает дату истечения срока действия токена.
-     *
-     * @param token JWT-токен
-     * @return дата истечения
-     */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    /**
-     * Извлекает конкретное утверждение (claim) из токена.
-     *
-     * @param token JWT-токен
-     * @param claimsResolver функция для извлечения утверждения
-     * @param <T> тип утверждения
-     * @return значение утверждения
-     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
@@ -83,13 +60,6 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    /**
-     * Проверяет, действителен ли токен для указанного пользователя.
-     *
-     * @param token JWT-токен
-     * @param userDetails данные пользователя
-     * @return true, если токен действителен, иначе false
-     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
@@ -99,41 +69,20 @@ public class JwtService {
         return extractExpiration(token).before(new Date());
     }
 
-    /**
-     * Проверяет, действителен ли refresh-токен.
-     *
-     * @param refreshToken refresh-токен
-     * @return true, если токен действителен, иначе false
-     */
     public boolean isRefreshTokenValid(String refreshToken) {
         return refreshTokenService.findByTokenOptional(refreshToken)
                 .map(refreshTokenService::isRefreshTokenValid)
                 .orElse(false);
     }
 
-    /**
-     * Генерирует access-токен для пользователя.
-     *
-     * @param userDetails данные пользователя
-     * @return access-токен
-     */
     public String generateAccessToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails, accessTokenExpiration);
     }
 
-    /**
-     * Генерирует refresh-токен для пользователя и сохраняет его в базе.
-     *
-     * @param userDetails данные пользователя
-     * @return refresh-токен
-     */
     public String generateRefreshToken(UserDetails userDetails) {
         String token = generateToken(new HashMap<>(), userDetails, refreshTokenExpiration);
         if (userDetails instanceof User user) {
-            // Удаляем старые токены для пользователя
-            refreshTokenService.deleteByUser(user);
-
-            // Сохраняем новый refresh-токен
+            // Сохраняем новый refresh-токен без удаления старых
             refreshTokenService.createRefreshToken(user, token);
         }
         return token;
