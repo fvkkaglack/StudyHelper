@@ -3,9 +3,11 @@ package com.studyhelper.service;
 import com.studyhelper.dto.request.UserRequest;
 import com.studyhelper.dto.response.PageDto;
 import com.studyhelper.dto.response.UserResponse;
+import com.studyhelper.entity.RefreshToken;
 import com.studyhelper.entity.Role;
 import com.studyhelper.entity.User;
 import com.studyhelper.mapper.UserMapper;
+import com.studyhelper.repository.RefreshTokenRepository;
 import com.studyhelper.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -33,48 +36,52 @@ public class UserService implements UserDetailsService {
     private final PasswordService passwordService;
     private final JwtService jwtService;
     private final UserMapper userMapper;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
 
-    public UserService(UserRepository userRepository, @Lazy PasswordService passwordService, JwtService jwtService, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, @Lazy PasswordService passwordService, JwtService jwtService,
+                       UserMapper userMapper, RefreshTokenRepository refreshTokenRepository,
+                       RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public UserMapper getUserMapper() {
         return userMapper;
     }
 
-// Регистрация обычного пользователя (USER)
-public Map<String, String> register(String nickname, String password) {
-    if (userRepository.existsByNickname(nickname)) {
-        throw new IllegalArgumentException("Пользователь с никнеймом " + nickname + " уже существует");
+    // Регистрация обычного пользователя (USER)
+    public Map<String, String> register(String nickname, String password) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new IllegalArgumentException("Пользователь с никнеймом " + nickname + " уже существует");
+        }
+        User user = new User();
+        user.setNickname(nickname);
+        user.setPassword(passwordService.encodePassword(password));
+        user.setRole(Role.USER);
+        user.setTotalStars(0);
+        user.setBalance(50);
+        user.setDebt(0);
+        user.setTasksCreated(0);
+        user.setTasksTaken(0);
+        user.setOverdueFakeTasks(0);
+        user.setUnjustRejections(0);
+        user.setTaskCreationBlocked(false);
+        user.setTaskTakingBlocked(false);
+        User savedUser = userRepository.save(user);
+        return generateTokens(savedUser);
     }
-    User user = new User();
-    user.setNickname(nickname);
-    user.setPassword(passwordService.encodePassword(password));
-    user.setRole(Role.USER);
-    user.setTotalStars(0);
-    user.setBalance(50);
-    user.setDebt(0);
-    user.setTasksCreated(0);
-    user.setTasksTaken(0);
-    user.setOverdueFakeTasks(0);
-    user.setUnjustRejections(0);
-    user.setTaskCreationBlocked(false);
-    user.setTaskTakingBlocked(false);
-    System.out.println("Saving user: " + user.getNickname());
-    User savedUser = userRepository.save(user);
-    System.out.println("User saved with ID: " + savedUser.getId());
-    return generateTokens(savedUser);
-}
 
     // Назначение роли модератора существующему пользователю (только для ADMIN)
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse assignModeratorRole(String nickname) {
         User user = findByNickname(nickname)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь с никнеймом " + nickname + " не найден"));
-        user.setRole(Role.MODERATOR); // Назначаем роль MODERATOR
+        user.setRole(Role.MODERATOR);
         User updatedUser = userRepository.save(user);
         return userMapper.toResponse(updatedUser);
     }
@@ -84,7 +91,7 @@ public Map<String, String> register(String nickname, String password) {
     public UserResponse assignAdminRole(String nickname) {
         User user = findByNickname(nickname)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь с никнеймом " + nickname + " не найден"));
-        user.setRole(Role.ADMIN); // Назначаем роль ADMIN
+        user.setRole(Role.ADMIN);
         User updatedUser = userRepository.save(user);
         return userMapper.toResponse(updatedUser);
     }
@@ -99,19 +106,25 @@ public Map<String, String> register(String nickname, String password) {
             user.setPassword(passwordService.encodePassword(request.password()));
         }
         if (role != null) {
-            user.setRole(role); // Обновляем роль, если она передана (контроллер проверяет права)
+            user.setRole(role);
         }
         User updatedUser = userRepository.save(user);
         return userMapper.toResponse(updatedUser);
     }
 
-// Удаление пользователя по ID (для MODERATOR и ADMIN)
-@PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-public void deleteUser(UUID id) {
-    User user = userRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден"));
-    userRepository.delete(user);
-}
+    // Удаление пользователя по ID (для MODERATOR и ADMIN)
+    @Transactional
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    public void deleteUser(UUID id, UserDetails currentUser) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден"));
+        if (currentUser instanceof User current && current.getId().equals(id)) {
+            throw new IllegalStateException("Нельзя удалить текущего пользователя!");
+        }
+        // Удаляем refresh-токены
+        refreshTokenRepository.deleteByUser(user);
+        userRepository.delete(user);
+    }
 
     // Получение пагинированного списка пользователей (для MODERATOR и ADMIN)
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -121,11 +134,10 @@ public void deleteUser(UUID id) {
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
 
-        // Используем конструктор PageDto для создания объекта
         return new PageDto<>(
                 userResponses,
                 userPage.getNumber(),
-                userPage.getNumberOfElements(), // elementsOnPage
+                userPage.getNumberOfElements(),
                 userPage.getTotalPages(),
                 userPage.getTotalElements()
         );
@@ -138,6 +150,7 @@ public void deleteUser(UUID id) {
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
     }
+
     // Обновление пользователя по никнейму (для текущего пользователя или ADMIN)
     public User updateUser(String nickname, User updatedUser, UserDetails currentUser) {
         if (!currentUser.getUsername().equals(nickname) && !currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
@@ -166,10 +179,16 @@ public void deleteUser(UUID id) {
     }
 
     // Удаление пользователя по никнейму (для ADMIN)
+    @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteUser(String nickname) {
-        User user = findByNickname(nickname)
+    public void deleteUser(String nickname, UserDetails currentUser) {
+        User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        if (currentUser.getUsername().equals(nickname)) {
+            throw new IllegalStateException("Нельзя удалить текущего пользователя!");
+        }
+        // Удаляем refresh-токены
+        refreshTokenRepository.deleteByUser(user);
         userRepository.delete(user);
     }
 
@@ -200,5 +219,36 @@ public void deleteUser(UUID id) {
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
+    }
+
+    // Выход пользователя
+    @Transactional
+    public void logout(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Недействительный access-токен");
+        }
+
+        String accessToken = authorizationHeader.substring(7);
+        String username;
+        try {
+            username = jwtService.extractUsername(accessToken);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Недействительный access-токен");
+        }
+
+        if (username == null) {
+            throw new IllegalArgumentException("Недействительный access-токен");
+        }
+
+        UserDetails userDetails = loadUserByUsername(username);
+        if (!jwtService.isTokenValid(accessToken, userDetails)) {
+            throw new IllegalArgumentException("Недействительный access-токен");
+        }
+
+        if (userDetails instanceof User user) {
+            refreshTokenService.deleteByUser(user);
+        } else {
+            throw new IllegalStateException("Пользователь не найден");
+        }
     }
 }

@@ -7,7 +7,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface RequestMapper {
+public interface   RequestMapper {
     Request toRequest(RequestRequest requestRequest);
 
     RequestResponse toResponse(Request request);

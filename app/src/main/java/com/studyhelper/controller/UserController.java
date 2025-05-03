@@ -5,13 +5,9 @@ import com.studyhelper.dto.response.PageDto;
 import com.studyhelper.dto.response.UserResponse;
 import com.studyhelper.entity.Role;
 import com.studyhelper.entity.User;
-import com.studyhelper.service.JwtService;
-import com.studyhelper.service.RefreshTokenService;
 import com.studyhelper.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,9 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,14 +35,10 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
-    private final JwtService jwtService;
-    private final RefreshTokenService refreshTokenService;
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    public UserController(UserService userService, JwtService jwtService, RefreshTokenService refreshTokenService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.jwtService = jwtService;
-        this.refreshTokenService = refreshTokenService;
     }
 
     // Назначение роли модератора (только для ADMIN)
@@ -95,10 +85,6 @@ public class UserController {
             @RequestBody @Valid @Parameter(description = "Данные для обновления пользователя") UserRequest request,
             @RequestParam(value = "role", required = false) @Parameter(description = "Новая роль пользователя (опционально)") Role role,
             @AuthenticationPrincipal UserDetails currentUser) {
-        // Только админ может менять роль
-        if (role != null && !currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new SecurityException("Только администратор может изменять роль");
-        }
         UserResponse userResponse = userService.updateUser(id, request, role);
         return ResponseEntity.ok(userResponse);
     }
@@ -125,11 +111,13 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пользователь успешно удалён"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
+            @ApiResponse(responseCode = "400", description = "Нельзя удалить текущего пользователя"),
             @ApiResponse(responseCode = "403", description = "Доступ запрещён")
     })
     public ResponseEntity<Void> deleteUserById(
-            @PathVariable @Parameter(description = "ID пользователя") UUID id) {
-        userService.deleteUser(id);
+            @PathVariable @Parameter(description = "ID пользователя") UUID id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        userService.deleteUser(id, currentUser);
         return ResponseEntity.ok().build();
     }
 
@@ -140,11 +128,13 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пользователь успешно удалён"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
+            @ApiResponse(responseCode = "400", description = "Нельзя удалить текущего пользователя"),
             @ApiResponse(responseCode = "403", description = "Доступ запрещён")
     })
     public ResponseEntity<Void> deleteUserByNickname(
-            @PathVariable @Parameter(description = "Никнейм пользователя") String nickname) {
-        userService.deleteUser(nickname);
+            @PathVariable @Parameter(description = "Никнейм пользователя") String nickname,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        userService.deleteUser(nickname, currentUser);
         return ResponseEntity.ok().build();
     }
 
@@ -195,56 +185,31 @@ public class UserController {
     @Operation(summary = "Выход пользователя", description = "Завершает сессию пользователя, инвалидируя все его refresh-токены")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Успешный выход из системы"),
-            @ApiResponse(responseCode = "401", description = "Недействительный access-токен",
-                    content = @Content(schema = @Schema(implementation = Map.class)))
+            @ApiResponse(responseCode = "400", description = "Недействительный access-токен"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не найден")
     })
     public ResponseEntity<Map<String, String>> logout(
-            @RequestHeader("Authorization") String authorizationHeader
-    ) {
-        logger.info("Получен запрос на выход пользователя");
-
-        // Извлекаем access-токен из заголовка
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Заголовок Authorization отсутствует или некорректен");
-            return ResponseEntity.status(401).body(Map.of("error", "Недействительный access-токен"));
-        }
-
-        String accessToken = authorizationHeader.substring(7); // Убираем "Bearer "
-        logger.info("Извлечен access-токен: {}", accessToken);
-
-        // Проверяем валидность access-токена
-        String username;
-        try {
-            username = jwtService.extractUsername(accessToken);
-        } catch (Exception e) {
-            logger.warn("Ошибка при извлечении имени пользователя из access-токена: {}", e.getMessage());
-            return ResponseEntity.status(401).body(Map.of("error", "Недействительный access-токен"));
-        }
-
-        if (username == null) {
-            logger.warn("Имя пользователя не найдено в access-токене");
-            return ResponseEntity.status(401).body(Map.of("error", "Недействительный access-токен"));
-        }
-
-        // Загружаем пользователя
-        UserDetails userDetails;
-        try {
-            userDetails = userService.loadUserByUsername(username);
-        } catch (UsernameNotFoundException e) {
-            logger.warn("Пользователь не найден: {}", username);
-            return ResponseEntity.status(401).body(Map.of("error", "Пользователь не найден"));
-        }
-
-        // Проверяем валидность access-токена
-        if (!jwtService.isTokenValid(accessToken, userDetails)) {
-            logger.warn("Access-токен недействителен или истек для пользователя: {}", username);
-            return ResponseEntity.status(401).body(Map.of("error", "Недействительный access-токен"));
-        }
-
-        // Инвалидируем все refresh-токены пользователя
-        refreshTokenService.deleteByUser(userDetails instanceof com.studyhelper.entity.User user ? user : null);
-        logger.info("Все refresh-токены пользователя {} успешно инвалидированы", username);
-
+            @RequestHeader("Authorization") String authorizationHeader) {
+        userService.logout(authorizationHeader);
         return ResponseEntity.ok(Map.of("message", "Успешный выход из системы"));
+    }
+
+    // Обработчики исключений
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+        logger.warn("Ошибка: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+        logger.warn("Недопустимое действие: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        logger.error("Нарушение целостности данных: ", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Невозможно удалить пользователя из-за связанных данных");
     }
 }

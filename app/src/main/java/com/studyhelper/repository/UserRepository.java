@@ -28,4 +28,5 @@ public interface UserRepository extends PagingAndSortingRepository<User, UUID>, 
      * @return true, если пользователь существует, иначе false
      */
     boolean existsByNickname(String nickname);
+
 }
