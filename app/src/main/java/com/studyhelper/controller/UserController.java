@@ -71,39 +71,6 @@ public class UserController {
         return ResponseEntity.ok(userResponse);
     }
 
-    // Обновление пользователя по ID (для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    @PutMapping("/{id}")
-    @Operation(summary = "Обновить пользователя по ID", description = "Обновляет данные пользователя по его ID (только для модераторов и админов)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Пользователь успешно обновлён"),
-            @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
-            @ApiResponse(responseCode = "403", description = "Доступ запрещён")
-    })
-    public ResponseEntity<UserResponse> updateUser(
-            @PathVariable @Parameter(description = "ID пользователя") UUID id,
-            @RequestBody @Valid @Parameter(description = "Данные для обновления пользователя") UserRequest request,
-            @RequestParam(value = "role", required = false) @Parameter(description = "Новая роль пользователя (опционально)") Role role,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        UserResponse userResponse = userService.updateUser(id, request, role);
-        return ResponseEntity.ok(userResponse);
-    }
-
-    // Обновление текущего пользователя (для USER, MODERATOR, ADMIN)
-    @PutMapping("/me")
-    @Operation(summary = "Обновить текущего пользователя", description = "Обновляет данные текущего пользователя (для всех ролей, ADMIN может менять роли)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Пользователь успешно обновлён"),
-            @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
-            @ApiResponse(responseCode = "403", description = "Доступ запрещён")
-    })
-    public ResponseEntity<User> updateCurrentUser(
-            @RequestBody @Valid @Parameter(description = "Данные для обновления пользователя") User updatedUser,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        User user = userService.updateUser(currentUser.getUsername(), updatedUser, currentUser);
-        return ResponseEntity.ok(user);
-    }
-
     // Удаление пользователя по ID (для MODERATOR и ADMIN)
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @DeleteMapping("/{id}")

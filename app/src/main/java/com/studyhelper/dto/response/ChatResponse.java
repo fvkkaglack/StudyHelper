@@ -2,6 +2,7 @@ package com.studyhelper.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.UUID;
 
 @Schema(description = "Ответ с данными чата")
@@ -18,7 +19,6 @@ public record ChatResponse(
         @Schema(description = "ID исполнителя")
         UUID executorId,
 
-        @Schema(description = "Сообщения в чате")
-        String messages
-) {
-}
+        @Schema(description = "Список сообщений")
+        List<ChatMessageResponse> messages
+) {}

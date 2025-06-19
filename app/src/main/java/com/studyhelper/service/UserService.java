@@ -3,11 +3,11 @@ package com.studyhelper.service;
 import com.studyhelper.dto.request.UserRequest;
 import com.studyhelper.dto.response.PageDto;
 import com.studyhelper.dto.response.UserResponse;
-import com.studyhelper.entity.RefreshToken;
 import com.studyhelper.entity.Role;
 import com.studyhelper.entity.User;
 import com.studyhelper.mapper.UserMapper;
 import com.studyhelper.repository.RefreshTokenRepository;
+import com.studyhelper.repository.TaskRepository;
 import com.studyhelper.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -38,16 +38,18 @@ public class UserService implements UserDetailsService {
     private final UserMapper userMapper;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RefreshTokenService refreshTokenService;
+    private final TaskRepository taskRepository;
 
     public UserService(UserRepository userRepository, @Lazy PasswordService passwordService, JwtService jwtService,
                        UserMapper userMapper, RefreshTokenRepository refreshTokenRepository,
-                       RefreshTokenService refreshTokenService) {
+                       RefreshTokenService refreshTokenService, TaskRepository taskRepository) {
         this.userRepository = userRepository;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
         this.refreshTokenRepository = refreshTokenRepository;
         this.refreshTokenService = refreshTokenService;
+        this.taskRepository = taskRepository;
     }
 
     public UserMapper getUserMapper() {
@@ -59,20 +61,12 @@ public class UserService implements UserDetailsService {
         if (userRepository.existsByNickname(nickname)) {
             throw new IllegalArgumentException("Пользователь с никнеймом " + nickname + " уже существует");
         }
-        User user = new User();
-        user.setNickname(nickname);
-        user.setPassword(passwordService.encodePassword(password));
-        user.setRole(Role.USER);
-        user.setTotalStars(0);
-        user.setBalance(50);
-        user.setDebt(0);
-        user.setTasksCreated(0);
-        user.setTasksTaken(0);
-        user.setOverdueFakeTasks(0);
-        user.setUnjustRejections(0);
-        user.setTaskCreationBlocked(false);
-        user.setTaskTakingBlocked(false);
+
+        // Используем маппер для создания пользователя
+        UserRequest request = new UserRequest(nickname, password);
+        User user = userMapper.toUser(request, passwordService);
         User savedUser = userRepository.save(user);
+
         return generateTokens(savedUser);
     }
 
@@ -96,22 +90,6 @@ public class UserService implements UserDetailsService {
         return userMapper.toResponse(updatedUser);
     }
 
-    // Обновление пользователя по ID (для MODERATOR и ADMIN)
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    public UserResponse updateUser(UUID id, UserRequest request, Role role) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден"));
-        userMapper.updateUser(user, request);
-        if (request.password() != null && !request.password().isEmpty()) {
-            user.setPassword(passwordService.encodePassword(request.password()));
-        }
-        if (role != null) {
-            user.setRole(role);
-        }
-        User updatedUser = userRepository.save(user);
-        return userMapper.toResponse(updatedUser);
-    }
-
     // Удаление пользователя по ID (для MODERATOR и ADMIN)
     @Transactional
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -121,6 +99,14 @@ public class UserService implements UserDetailsService {
         if (currentUser instanceof User current && current.getId().equals(id)) {
             throw new IllegalStateException("Нельзя удалить текущего пользователя!");
         }
+        // Удаляем связанные задачи
+        taskRepository.deleteByAuthorId(user.getId());
+        taskRepository.findAll().forEach(task -> {
+            if (user.getId().equals(task.getExecutorId())) {
+                task.setExecutorId(null);
+                taskRepository.save(task);
+            }
+        });
         // Удаляем refresh-токены
         refreshTokenRepository.deleteByUser(user);
         userRepository.delete(user);
@@ -151,33 +137,6 @@ public class UserService implements UserDetailsService {
                 .collect(Collectors.toList());
     }
 
-    // Обновление пользователя по никнейму (для текущего пользователя или ADMIN)
-    public User updateUser(String nickname, User updatedUser, UserDetails currentUser) {
-        if (!currentUser.getUsername().equals(nickname) && !currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new SecurityException("Вы можете обновлять только свои данные");
-        }
-        User user = findByNickname(nickname)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
-        user.setNickname(updatedUser.getNickname());
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
-            user.setPassword(passwordService.encodePassword(updatedUser.getPassword()));
-        }
-        if (currentUser.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")) && updatedUser.getRole() != null) {
-            user.setRole(updatedUser.getRole());
-        }
-        user.setBalance(updatedUser.getBalance());
-        user.setTotalStars(updatedUser.getTotalStars());
-        user.setDebt(updatedUser.getDebt());
-        user.setTasksCreated(updatedUser.getTasksCreated());
-        user.setTasksTaken(updatedUser.getTasksTaken());
-        user.setOverdueFakeTasks(updatedUser.getOverdueFakeTasks());
-        user.setUnjustRejections(updatedUser.getUnjustRejections());
-        user.setTaskCreationBlocked(updatedUser.isTaskCreationBlocked());
-        user.setTaskTakingBlocked(updatedUser.isTaskTakingBlocked());
-        user.setBlockUntil(updatedUser.getBlockUntil());
-        return userRepository.save(user);
-    }
-
     // Удаление пользователя по никнейму (для ADMIN)
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
@@ -187,6 +146,14 @@ public class UserService implements UserDetailsService {
         if (currentUser.getUsername().equals(nickname)) {
             throw new IllegalStateException("Нельзя удалить текущего пользователя!");
         }
+        // Удаляем связанные задачи
+        taskRepository.deleteByAuthorId(user.getId());
+        taskRepository.findAll().forEach(task -> {
+            if (user.getId().equals(task.getExecutorId())) {
+                task.setExecutorId(null);
+                taskRepository.save(task);
+            }
+        });
         // Удаляем refresh-токены
         refreshTokenRepository.deleteByUser(user);
         userRepository.delete(user);

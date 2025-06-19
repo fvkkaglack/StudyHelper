@@ -2,46 +2,28 @@ package com.studyhelper.mapper;
 
 import com.studyhelper.dto.request.TaskRequest;
 import com.studyhelper.dto.response.TaskResponse;
-import com.studyhelper.entity.Request;
 import com.studyhelper.entity.Task;
+import com.studyhelper.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-import org.springframework.util.CollectionUtils;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 import static org.mapstruct.ReportingPolicy.ERROR;
 
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ERROR)
 public interface TaskMapper {
-    @Mapping(target = "id", ignore = true) // id генерируется автоматически
-    @Mapping(target = "title", ignore = true)
-    @Mapping(target = "requests", ignore = true)
-    @Mapping(target = "status", defaultValue = "OPEN")
-    Task toTask(TaskRequest request);
-
-    @Mapping(target = "status", expression = "java(task.getStatus() != null ? task.getStatus() : null)")
-    @Mapping(target = "requestIds", source = "requests", qualifiedByName = "toRequestIds")
-    TaskResponse toResponse(Task task);
-
-    @Named("toRequestIds")
-    default List<UUID> toRequestIds(Set<Request> requests) {
-        if (CollectionUtils.isEmpty(requests)) {
-            return null;
-        }
-        return requests.stream().map(Request::getId).toList();
-    }
-
-    @Mapping(target = "id", ignore = true) // id не обновляем
-    @Mapping(target = "authorId", source = "request.authorId")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "authorId", expression = "java(user.getId())") // Устанавливаем authorId из User
+    @Mapping(target = "executorId", ignore = true) // Игнорируем executorId при создании
+    @Mapping(target = "status", constant = "OPEN") // Устанавливаем фиксированное значение
+    @Mapping(target = "title", source = "request.title")
     @Mapping(target = "description", source = "request.description")
     @Mapping(target = "reward", source = "request.reward")
     @Mapping(target = "deadline", source = "request.deadline")
-    @Mapping(target = "executorId", source = "request.executorId")
-    @Mapping(target = "status", expression = "java(request.status() != null ? request.status() : task.getStatus())")
-    Task updateTask(Task task, TaskRequest request);
+    Task toTask(TaskRequest request, User user);
+
+    // Упрощаем toResponse, убираем логику получения никнеймов
+    @Mapping(target = "authorNickname", ignore = true) // Будет установлено в сервисе
+    @Mapping(target = "executorNickname", ignore = true) // Будет установлено в сервисе
+    TaskResponse toResponse(Task task);
 }

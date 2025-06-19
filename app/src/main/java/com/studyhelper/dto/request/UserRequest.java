@@ -5,9 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
-/**
- * Запрос на создание или обновление пользователя.
- */
 @Schema(description = "Запрос на создание пользователя")
 public record UserRequest(
         @NotBlank

@@ -6,9 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Ответ с данными пользователя.
- */
 @Schema(description = "Ответ с данными пользователя")
 public record UserResponse(
         @Schema(description = "ID пользователя")

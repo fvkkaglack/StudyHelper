@@ -16,4 +16,5 @@ public record RequestResponse(
 
         @Schema(description = "Статус запроса", example = "PENDING")
         String status
-) {}
+) {
+}

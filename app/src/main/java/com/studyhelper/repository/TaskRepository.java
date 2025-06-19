@@ -9,4 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface TaskRepository extends PagingAndSortingRepository<Task, UUID>, CrudRepository<Task, UUID> {
+    void deleteByAuthorId(UUID authorId);
 }

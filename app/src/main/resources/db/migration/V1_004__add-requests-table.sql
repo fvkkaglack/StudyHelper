@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS requests
     task_id UUID NOT NULL,
     user_id UUID NOT NULL,
     status VARCHAR(50) NOT NULL,
+    comment VARCHAR(500), -- Добавлено поле для комментария, опциональное (NULL по умолчанию)
     FOREIGN KEY (task_id) REFERENCES tasks(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
