@@ -1,3 +1,4 @@
+/*
 package com.studyhelper.service;
 
 import com.studyhelper.dto.request.ChatMessageRequest;
@@ -96,3 +97,5 @@ public class ChatService {
         return chatMapper.toResponse(chat); // senderNickname теперь заполняется в маппере
     }
 }
+
+ */

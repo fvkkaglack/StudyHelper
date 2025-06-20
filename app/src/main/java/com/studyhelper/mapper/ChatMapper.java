@@ -1,4 +1,4 @@
-package com.studyhelper.mapper;
+/*package com.studyhelper.mapper;
 
 import com.studyhelper.dto.response.ChatMessageResponse;
 import com.studyhelper.dto.response.ChatResponse;
@@ -8,6 +8,7 @@ import com.studyhelper.repository.UserRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
@@ -26,3 +27,4 @@ public interface ChatMapper {
                 .getNickname();
     }
 }
+ */

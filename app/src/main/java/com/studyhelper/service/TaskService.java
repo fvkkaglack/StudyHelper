@@ -7,7 +7,7 @@ import com.studyhelper.entity.Task;
 import com.studyhelper.entity.TaskStatus;
 import com.studyhelper.entity.User;
 import com.studyhelper.mapper.TaskMapper;
-import com.studyhelper.repository.ChatMessageRepository;
+//import com.studyhelper.repository.ChatMessageRepository;
 import com.studyhelper.repository.RequestRepository;
 import com.studyhelper.repository.TaskRepository;
 import com.studyhelper.repository.UserRepository;
@@ -34,17 +34,17 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final RequestRepository requestRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    //private final ChatMessageRepository chatMessageRepository;
     private final TaskMapper taskMapper;
     private final DisputeService disputeService;
 
     public TaskService(TaskRepository taskRepository, UserRepository userRepository,
-                       RequestRepository requestRepository, ChatMessageRepository chatMessageRepository,
+                       RequestRepository requestRepository, //ChatMessageRepository chatMessageRepository,
                        TaskMapper taskMapper, DisputeService disputeService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.requestRepository = requestRepository;
-        this.chatMessageRepository = chatMessageRepository;
+        //this.chatMessageRepository = chatMessageRepository;
         this.taskMapper = taskMapper;
         this.disputeService = disputeService;
     }
@@ -87,7 +87,7 @@ public class TaskService {
             throw new IllegalArgumentException("Задача не найдена");
         }
         requestRepository.deleteByTaskId(id);
-        chatMessageRepository.deleteByTaskId(id); // Удаляем сообщения чата
+        //chatMessageRepository.deleteByTaskId(id); // Удаляем сообщения чата
         taskRepository.deleteById(id);
     }
 
@@ -317,7 +317,7 @@ public class TaskService {
             }
 
             requestRepository.deleteByTaskId(task.getId());
-            chatMessageRepository.deleteByTaskId(task.getId()); // Удаляем сообщения чата
+            //chatMessageRepository.deleteByTaskId(task.getId()); // Удаляем сообщения чата
             taskRepository.delete(task);
         }
     }

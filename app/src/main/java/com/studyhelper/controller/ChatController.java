@@ -1,4 +1,4 @@
-package com.studyhelper.controller;
+/*package com.studyhelper.controller;
 
 import com.studyhelper.dto.request.ChatMessageRequest;
 import com.studyhelper.dto.response.ChatResponse;
@@ -66,3 +66,4 @@ public class ChatController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
+ */

@@ -1,4 +1,4 @@
-package com.studyhelper.dto.response;
+/*package com.studyhelper.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -19,3 +19,4 @@ public record ChatMessageResponse(
         @Schema(description = "Дата и время отправки")
         LocalDateTime sentAt
 ) {}
+ */

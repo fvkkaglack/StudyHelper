@@ -1,4 +1,4 @@
-package com.studyhelper.dto.response;
+/*package com.studyhelper.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -22,3 +22,4 @@ public record ChatResponse(
         @Schema(description = "Список сообщений")
         List<ChatMessageResponse> messages
 ) {}
+ */

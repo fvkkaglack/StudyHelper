@@ -1,4 +1,4 @@
-package com.studyhelper.mapper;
+/*package com.studyhelper.mapper;
 
 import com.studyhelper.dto.request.ChatMessageRequest;
 import com.studyhelper.dto.response.ChatMessageResponse;
@@ -21,3 +21,4 @@ public interface ChatMessageMapper {
     @Mapping(target = "sentAt", source = "message.sentAt")
     ChatMessageResponse toMessageResponse(ChatMessage message, String senderNickname);
 }
+ */
