@@ -226,6 +226,10 @@ public class TaskService {
         User executor = userRepository.findById(updatedTask.getExecutorId())
                 .orElseThrow(() -> new IllegalStateException("Исполнитель не найден"));
 
+        int reward = task.getReward();
+        author.subtractFromBalance(reward);
+        executor.addToBalance(reward);
+
         TaskResponse response = taskMapper.toResponse(updatedTask);
         return new TaskResponse(
                 response.id(),
@@ -264,7 +268,7 @@ public class TaskService {
             throw new IllegalArgumentException("Причина спора не может быть пустой");
         }
 
-        task.setStatus(TaskStatus.DISPUTED);
+        task.setStatus(TaskStatus.REJECTED);
         Task updatedTask = taskRepository.save(task);
 
         User executor = userRepository.findById(updatedTask.getExecutorId())

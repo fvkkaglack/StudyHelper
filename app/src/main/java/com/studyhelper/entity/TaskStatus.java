@@ -5,6 +5,6 @@ public interface TaskStatus {
     String TAKEN = "TAKEN";
     String PENDING_COMPLETION = "PENDING_COMPLETION";
     String COMPLETED = "COMPLETED";
-    String OVERDUE = "OVERDUE";
     String DISPUTED = "DISPUTED";
+    String REJECTED = "REJECTED";
 }

@@ -2,6 +2,7 @@ package com.studyhelper.controller;
 
 import com.studyhelper.dto.request.RequestRequest;
 import com.studyhelper.dto.response.RequestResponse;
+import com.studyhelper.dto.response.TaskResponse;
 import com.studyhelper.service.RequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -50,6 +51,26 @@ public class RequestController {
         logger.info("Создание заявки на задачу с ID: {} от пользователя: {}", taskId, currentUser.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(requestService.createRequest(request, taskId, currentUser));
+    }
+
+    @PutMapping("/{requestId}/accept")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Принять заявку на задание",
+            description = "Принимает заявку на выполнение задания. Только автор задания может принять заявку.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Заявка успешно принята"),
+            @ApiResponse(responseCode = "400", description = "Недействительные данные запроса"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен (не автор задачи)")
+    })
+    public ResponseEntity<TaskResponse> acceptRequest(
+            @PathVariable UUID requestId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        logger.info("Принятие заявки с ID: {} пользователем: {}", requestId, currentUser.getUsername());
+        return ResponseEntity.ok(requestService.acceptRequest(requestId, currentUser));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

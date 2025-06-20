@@ -99,4 +99,22 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public void addToBalance(int amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Сумма пополнения не может быть отрицательной");
+        }
+        this.balance += amount;
+    }
+
+    public void subtractFromBalance(int amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Сумма списания не может быть отрицательной");
+        }
+        if (this.balance < amount) {
+            throw new IllegalStateException("Недостаточно средств на балансе");
+        }
+        this.balance -= amount;
+    }
 }
+
